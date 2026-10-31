@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/auth/AuthPages'
 
 const pageDefinitions = [
   { path: 'products', title: 'Products', description: 'Organize the products and services you offer.', actionLabel: 'Add product' },
@@ -19,6 +20,10 @@ const pageDefinitions = [
 export default function App() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         {pageDefinitions.map((page) => <Route key={page.path} path={page.path} element={<PlaceholderPage {...page} />} />)}
