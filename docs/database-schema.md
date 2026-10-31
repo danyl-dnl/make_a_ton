@@ -13,7 +13,7 @@
 2. **UUIDv4 Primary Keys:** All tables utilize globally unique UUIDv4 identifiers (`uuid_generate_v4()` or application-level UUIDs) to prevent enumeration attacks and simplify distributed data ingestion.
 3. **Multi-Tenancy Foundation:** Every domain entity is partitioned logically by `organization_id`, ensuring strict tenant isolation across organizations, enterprises, and accounts.
 4. **Timezone-Aware Timestamps:** All datetime columns (`created_at`, `updated_at`, `period_start`, `period_end`) are stored as `TIMESTAMP WITH TIME ZONE` (`TIMESTAMPTZ`) normalized to UTC.
-5. **Monetary Precision:** All currency amounts are represented as 64-bit integer cents (`BIGINT amount_cents`) to completely eliminate IEEE 754 floating-point rounding errors.
+5. **Monetary Precision:** All currency amounts are represented using fixed-precision `NUMERIC(12, 2)` (and `NUMERIC(5, 2)` for tax percentages) to completely eliminate floating-point rounding errors while matching standard accounting decimal representations. Historical unit prices, tax amounts, and discount amounts are permanently preserved in invoice line snapshots.
 
 ---
 
@@ -253,10 +253,10 @@ erDiagram
 |---|---|---|---|
 | `id` | UUID | PK, NOT NULL | Unique user identifier |
 | `organization_id` | UUID | FK -> organizations(id) | Associated organization |
-| `email` | VARCHAR(255) | UNIQUE, NOT NULL | Login credential |
-| `password_hash` | VARCHAR(255) | NOT NULL | Argon2id / bcrypt password hash |
+| `email` | VARCHAR(255) | UNIQUE, NOT NULL | Login credential (normalized lowercase) |
+| `hashed_password` | VARCHAR(255) | NOT NULL | Argon2id secure password hash |
 | `full_name` | VARCHAR(255) | NOT NULL | Display name |
-| `role` | VARCHAR(50) | NOT NULL | `admin`, `billing_manager`, `viewer`, `customer` |
+| `role` | VARCHAR(50) | NOT NULL, CHECK in ('admin','staff','customer') | RBAC authorization role |
 | `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Account lock flag |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Last update timestamp |
@@ -272,43 +272,42 @@ erDiagram
 | `phone` | VARCHAR(50) | NULLABLE | Contact telephone |
 | `tax_id` | VARCHAR(50) | NULLABLE | VAT / GST / EIN identification |
 | `currency` | VARCHAR(3) | NOT NULL, DEFAULT 'USD' | Preferred invoice currency |
-| `billing_address` | JSONB | NULLABLE | Structured address: street, city, state, zip, country |
-| `metadata` | JSONB | NULLABLE | Extensible key-value attributes |
+| `billing_address` | VARCHAR(500) | NULLABLE | Structured address description |
+| `is_active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Customer active state |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Last update timestamp |
 
-### 3.4. `products` & `plans`
-- **`products`**: Root software catalog entry (e.g., "SubscriptIQ Enterprise Suite", "API Usage Add-on").
-- **`plans`**: Specific pricing tiers under a product.
-  - `billing_interval`: `monthly`, `quarterly`, `semiannual`, `annual`.
-  - `pricing_model`: `flat_fee`, `per_seat`, `tiered`, `usage_based`.
-  - `price_cents`: Base periodic cost in currency smallest units.
-  - `trial_period_days`: Free trial duration before first charge.
+### 3.4. `products`, `product_variants`, `plans` & `plan_products`
+- **`products`**: Root software catalog entry (name, unique code, description, active state).
+- **`product_variants`**: Specific variant tier (name, unique sku, `price NUMERIC(12, 2)`).
+- **`plans`**: Billing frequency tier (name, unique code, `billing_interval`, `billing_interval_count`, `price NUMERIC(12, 2)`, `trial_period_days`).
+- **`plan_products`**: Many-to-many relationship linking Plans to catalog Products and optional Variants with item quantity.
 
-### 3.5. `subscriptions` (Lifecycle State Machine)
-- **States:**
-  - `trialing`: In active free trial.
-  - `active`: In regular recurring billing cycle.
-  - `past_due`: Latest invoice payment attempt failed; grace period active.
-  - `paused`: Recurring billing temporarily suspended.
-  - `canceled`: Terminated at end of period or immediately.
-  - `expired`: Trial or term concluded without renewal.
-- **Fields:**
-  - `current_period_start` & `current_period_end`: Current billing timeframe.
-  - `cancel_at_period_end`: Flag allowing customer to retain access until period expires.
-  - `renewal_count`: Total successful billing cycles completed.
+### 3.5. `subscriptions` & `subscription_lines`
+- **`subscriptions`**: Customer recurring contracts with unique `subscription_number`, status (`active`, `paused`, `canceled`, etc.), `current_period_start`, `current_period_end`, and cancellation tracking.
+- **`subscription_lines`**: Itemized service lines linked to products/variants with unit price (`NUMERIC(12, 2)`) and quantity.
 
-### 3.6. `invoices` & `invoice_items`
-- **`invoices`**:
-  - `invoice_number`: Formatted sequential identifier (e.g., `INV-2026-00042`).
-  - `status`: `draft`, `open`, `paid`, `void`, `uncollectible`.
-  - `subtotal_cents`, `discount_cents`, `tax_cents`, `total_cents`.
-- **`invoice_items`**:
-  - Itemized breakdowns including base fees, seat adjustments, and prorations.
+### 3.6. `invoices` & `invoice_lines`
+- **`invoices`**: Billing invoice with unique `invoice_number`, status (`draft`, `open`, `paid`, `void`, `uncollectible`), `due_date`, `paid_at`, `subtotal`, `discount_amount`, `tax_amount`, and `total` (all `NUMERIC(12, 2)`).
+- **`invoice_lines`**: Immutable financial snapshot containing `unit_price`, `quantity`, `discount_amount`, `tax_rate`, `tax_amount`, and `total` (`NUMERIC(12, 2)`). Ensures future product catalog price adjustments never mutate previously issued invoices.
 
 ### 3.7. `payments`
-- Records payment gateway reconciliation events (Stripe, Razorpay, or Manual wire).
-- Reconciled against target `invoice_id`.
+- Financial ledger entries recording transaction references, payment method, `amount NUMERIC(12, 2)`, currency, processing timestamp, and payment status (`pending`, `succeeded`, `failed`).
+
+### 3.8. `billing_events`
+- Idempotency and renewal tracking records with database-level uniqueness constraint `uq_billing_event_subscription_period_type` on `(subscription_id, period_start, period_end, event_type)`.
+
+### 3.9. `quotation_templates`, `quotations` & lines
+- Reusable quotation templates with default line items and customer quotation proposals with itemized pricing snapshots.
+
+### 3.10. `tax_rules` & `discount_rules`
+- Regional tax specifications with `rate_percent NUMERIC(5, 2)` and promotional coupon rules with `value NUMERIC(12, 2)` and redemption tracking.
+
+### 3.11. `password_reset_tokens`
+- Secure cryptographic password reset records storing SHA-256 token hashes, expiration timestamps, and one-time `is_used` flags.
+
+### 3.12. `audit_logs`
+- Append-only audit log for tracking administrative actions, security mutations, and domain events with user and tenant foreign keys.
 
 ---
 

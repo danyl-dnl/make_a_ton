@@ -17,7 +17,13 @@
 ### 1.2. Authentication & Security
 - **Mechanism:** HTTP Bearer Authentication with JSON Web Tokens (JWT).
 - **Header:** `Authorization: Bearer <access_token>`
-- **RBAC Roles:** `admin`, `billing_manager`, `viewer`, `customer`.
+- **Password Complexity Rules:**
+  - Length > 8 characters (minimum 9 characters).
+  - Minimum one uppercase letter (`[A-Z]`).
+  - Minimum one lowercase letter (`[a-z]`).
+  - Minimum one special character (`[^A-Za-z0-9]`).
+  - Passwords securely hashed with Argon2id before database storage.
+- **RBAC Roles:** `admin`, `staff`, `customer`.
 
 ### 1.3. Standard Error Envelope (RFC 7807 Problem Details)
 When an endpoint encounters a validation error, domain error, or internal fault:
@@ -75,6 +81,139 @@ Validates application runtime readiness and executes an active round-trip probe 
     "latency_ms": null,
     "error": "connection to server at 'localhost', port 5432 failed: Connection refused"
   }
+}
+```
+
+### 2.2. Authentication & Access Control Endpoints
+
+#### 2.2.1. Customer Self-Registration
+Allows public registration strictly for customer subscriber accounts. Automatically creates user credentials and associated `Customer` profile.
+
+- **Method:** `POST`
+- **Path:** `/api/auth/register` (also accessible via `/api/v1/auth/register`)
+- **Authentication:** Public
+- **Validation Rules:**
+  - `email`: Normalized to lowercase, whitespace trimmed, valid email format, unique across system.
+  - `password`: Length > 8 characters, >=1 uppercase, >=1 lowercase, >=1 special character.
+  - `full_name`: String between 2 and 255 characters.
+  - `role`: Optional, strictly restricted to `"customer"`. Any attempt to supply `"admin"` or `"staff"` is rejected with HTTP 422.
+
+##### Request Payload (`POST /api/auth/register`)
+```json
+{
+  "email": "customer@example.com",
+  "password": "SecurePassword123!",
+  "full_name": "Jane Doe",
+  "role": "customer"
+}
+```
+
+##### Success Response (`201 Created`)
+```json
+{
+  "id": "e33f3c31-7e8c-4f81-a75d-35201ca701c9",
+  "email": "customer@example.com",
+  "full_name": "Jane Doe",
+  "role": "customer",
+  "is_active": true,
+  "created_at": "2026-10-31T13:40:00Z"
+}
+```
+
+##### Error Responses
+- `400 Bad Request`: `{"detail": "Email address is already registered."}`
+- `422 Unprocessable Entity`: Password complexity failure or unauthorized role specification.
+
+---
+
+#### 2.2.2. User Login & Token Issuance
+Authenticates registered credentials and issues a signed JSON Web Token (JWT).
+
+- **Method:** `POST`
+- **Path:** `/api/auth/login` (also accessible via `/api/v1/auth/login`)
+- **Authentication:** Public
+
+##### Request Payload (`POST /api/auth/login`)
+```json
+{
+  "email": "customer@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+##### Success Response (`200 OK`)
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": "e33f3c31-7e8c-4f81-a75d-35201ca701c9",
+    "email": "customer@example.com",
+    "full_name": "Jane Doe",
+    "role": "customer",
+    "is_active": true,
+    "created_at": "2026-10-31T13:40:00Z"
+  }
+}
+```
+
+##### Error Responses
+- `401 Unauthorized`: Invalid email or password (`{"detail": "Invalid email or password."}`).
+- `403 Forbidden`: Account deactivated (`{"detail": "User account is deactivated."}`).
+
+---
+
+#### 2.2.3. Admin-Only Staff Account Creation
+Restricted administrative endpoint allowing users with role `admin` to provision new `staff` team accounts.
+
+- **Method:** `POST`
+- **Path:** `/api/auth/staff` (also accessible via `/api/v1/auth/staff`)
+- **Authentication:** Required (Bearer JWT with `role: "admin"`)
+
+##### Request Payload (`POST /api/auth/staff`)
+```json
+{
+  "email": "staff.member@brightloop.io",
+  "password": "StaffPassword123!",
+  "full_name": "Alex Smith"
+}
+```
+
+##### Success Response (`201 Created`)
+```json
+{
+  "id": "f55c2d12-8f9d-4e92-b86e-46312db812da",
+  "email": "staff.member@brightloop.io",
+  "full_name": "Alex Smith",
+  "role": "staff",
+  "is_active": true,
+  "created_at": "2026-10-31T13:41:00Z"
+}
+```
+
+##### Error Responses
+- `401 Unauthorized`: Missing, expired, or invalid JWT bearer token.
+- `403 Forbidden`: Authenticated user role is not `admin`.
+- `400 Bad Request`: Email already registered.
+
+---
+
+#### 2.2.4. Current User Profile
+Retrieves authenticated user profile based on validated JWT bearer token claims.
+
+- **Method:** `GET`
+- **Path:** `/api/auth/me` (also accessible via `/api/v1/auth/me`)
+- **Authentication:** Required (Bearer JWT)
+
+##### Success Response (`200 OK`)
+```json
+{
+  "id": "e33f3c31-7e8c-4f81-a75d-35201ca701c9",
+  "email": "customer@example.com",
+  "full_name": "Jane Doe",
+  "role": "customer",
+  "is_active": true,
+  "created_at": "2026-10-31T13:40:00Z"
 }
 ```
 

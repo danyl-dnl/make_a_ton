@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
+    # Authentication & Security
+    SECRET_KEY: str = "brightloop-subscriptiq-jwt-secret-key-production-change-2026"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
     # PostgreSQL Database Parameters
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5434
