@@ -45,7 +45,7 @@ export function ProductsPage() {
   const load = useCallback(async () => {
     setLoading(true); setPageError('')
     try { const result = await catalogService.listProducts(); setProducts(result.items) }
-    catch (error) { setPageError(error instanceof Error ? error.message : 'Products could not be loaded. Please try again.') }
+    catch (error) { setProducts([]); setPageError(error instanceof Error ? error.message : 'Products could not be loaded. Please try again.') }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
@@ -81,10 +81,10 @@ export function ProductsPage() {
   }
 
   const columns: DataTableColumn<Product>[] = [
-    { key: 'name', header: 'Product', render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 text-xs text-slate-500">{item.variants.length} {item.variants.length === 1 ? 'variant' : 'variants'}</p></div> },
-    { key: 'type', header: 'Type', render: (item) => <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{typeLabels[item.type]}</span> },
-    { key: 'sales', header: 'Sales price', render: (item) => <span className="font-medium text-slate-800">{formatINR.format(item.salesPrice)}</span> },
-    { key: 'cost', header: 'Cost price', render: (item) => <span className="text-slate-600">{formatINR.format(item.costPrice)}</span> },
+    { key: 'name', header: 'Product', sortValue: (item) => item.name, render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 text-xs text-slate-500">{item.variants.length} {item.variants.length === 1 ? 'variant' : 'variants'}</p></div> },
+    { key: 'type', header: 'Type', sortValue: (item) => typeLabels[item.type], render: (item) => <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{typeLabels[item.type]}</span> },
+    { key: 'sales', header: 'Sales price', sortValue: (item) => item.salesPrice, render: (item) => <span className="font-medium text-slate-800">{formatINR.format(item.salesPrice)}</span> },
+    { key: 'cost', header: 'Cost price', sortValue: (item) => item.costPrice, render: (item) => <span className="text-slate-600">{formatINR.format(item.costPrice)}</span> },
     { key: 'variants', header: 'Variant additions', render: (item) => item.variants.length ? <span className="text-xs text-slate-600">{item.variants.map((variant) => `${variant.name} +${formatINR.format(variant.additionalPrice)}`).join(' · ')}</span> : <span className="text-xs text-slate-400">—</span> },
     { key: 'actions', header: '', headerClassName: 'w-24', className: 'text-right', render: (item) => <div className="flex justify-end gap-1"><Button variant="ghost" size="icon" className="size-8" aria-label={`Edit ${item.name}`} onClick={() => openEdit(item)}><Pencil size={15} /></Button><Button variant="ghost" size="icon" className="size-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={15} /></Button></div> },
   ]

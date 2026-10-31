@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 import {
-  BarChart3, Blocks, ChevronDown, CircleDollarSign, CreditCard, FileText, Gauge,
-  Layers3, LifeBuoy, Menu, Percent, ReceiptText, Settings2, ShieldCheck, Users, X,
+  BarChart3, Blocks, CircleDollarSign, CreditCard, FileText, Gauge,
+  Layers3, Menu, Percent, ReceiptText, ShieldCheck, Users, X,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -33,28 +33,47 @@ const navGroups = [
 type SidebarProps = { mobileOpen?: boolean; onClose?: () => void }
 
 export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
-  const [workspaceOpen, setWorkspaceOpen] = useState(true)
+  const sidebarRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!mobileOpen) return
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const focusable = () => [...(sidebarRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? [])]
+    requestAnimationFrame(() => focusable()[0]?.focus())
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose?.(); return }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      if (!items.length) return
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus() }
+      else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus() }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      if (previouslyFocused?.isConnected) previouslyFocused.focus()
+    }
+  }, [mobileOpen, onClose])
   return (
     <>
-      {mobileOpen ? <button aria-label="Close navigation overlay" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={onClose} /> : null}
-      <aside className={cn(
+      {mobileOpen ? <button type="button" aria-label="Close navigation overlay" className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={onClose} /> : null}
+      <aside ref={sidebarRef} id="main-navigation" aria-label="Main navigation" className={cn(
         'fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col bg-[#111b32] text-slate-300 transition-transform duration-200 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:translate-x-0',
-        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full',
+        'lg:visible',
       )}>
         <div className="flex h-[76px] items-center justify-between border-b border-white/[0.08] px-5">
-          <a className="flex items-center gap-3" href="/" aria-label="Brightloop home">
+          <Link className="flex items-center gap-3" to="/" onClick={onClose} aria-label="Brightloop home">
             <span className="grid size-9 place-items-center rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-950/30">
               <span className="text-lg font-black leading-none">b</span>
             </span>
             <span className="text-[17px] font-semibold tracking-tight text-white">brightloop</span>
-          </a>
+          </Link>
           <button className="grid size-9 place-items-center rounded-lg text-slate-400 hover:bg-white/10 lg:hidden" onClick={onClose} aria-label="Close sidebar"><X size={18} /></button>
         </div>
-        <button onClick={() => setWorkspaceOpen(!workspaceOpen)} className="mx-3 mt-5 flex items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.04] p-3 text-left hover:bg-white/[0.07]">
+        <div className="mx-3 mt-5 flex items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.04] p-3">
           <span className="grid size-9 place-items-center rounded-lg bg-indigo-400/15 text-xs font-bold text-indigo-200">BL</span>
-          <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">Brightloop Inc.</span><span className="mt-0.5 block text-xs text-slate-400">Workspace</span></span>
-          <ChevronDown size={15} className={cn('text-slate-500 transition-transform', workspaceOpen && 'rotate-180')} />
-        </button>
+          <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">Brightloop</span><span className="mt-0.5 block text-xs text-slate-400">Workspace</span></span>
+        </div>
         <nav className="flex-1 overflow-y-auto px-3 pb-5 pt-6" aria-label="Main navigation">
           {navGroups.map((group) => (
             <div className="mb-6" key={group.label}>
@@ -72,15 +91,12 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/[0.08] p-3">
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-400 hover:bg-white/[0.06] hover:text-white"><Settings2 size={17} />Settings</button>
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-400 hover:bg-white/[0.06] hover:text-white"><LifeBuoy size={17} />Help & support</button>
-        </div>
+        <div className="border-t border-white/[0.08] px-5 py-4 text-[11px] text-slate-500">Brightloop Software</div>
       </aside>
     </>
   )
 }
 
-export function MobileNavButton({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} aria-label="Open navigation" className="grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm lg:hidden"><Menu size={18} /></button>
+export function MobileNavButton({ onClick, expanded }: { onClick: () => void; expanded: boolean }) {
+  return <button onClick={onClick} aria-label="Open navigation" aria-expanded={expanded} aria-controls="main-navigation" className="grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm lg:hidden"><Menu size={18} /></button>
 }

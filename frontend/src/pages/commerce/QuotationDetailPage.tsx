@@ -15,7 +15,7 @@ import type { Quotation } from '../../lib/commerce-types'
 export function QuotationDetailPage() {
   const { quotationId = '' } = useParams()
   const [item, setItem] = useState<Quotation | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItem(await commerceApi.getQuotation(quotationId)) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Quotation could not be loaded.') } finally { setLoading(false) } }, [quotationId])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItem(await commerceApi.getQuotation(quotationId)) } catch (cause) { setItem(null); setError(cause instanceof Error ? cause.message : 'Quotation could not be loaded.') } finally { setLoading(false) } }, [quotationId])
   useEffect(() => { void load() }, [load])
   return <PageContainer title={item ? item.number : 'Quotation details'} description="Review quotation terms, validity, and line item pricing." actions={<Link to="/quotations" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><ArrowLeft size={15} />All quotations</Link>}>
     {!commerceApiConfigured ? <ApiDependencyNotice /> : null}

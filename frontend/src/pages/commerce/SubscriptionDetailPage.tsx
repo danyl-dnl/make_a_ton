@@ -25,7 +25,7 @@ const actions: { id: LifecycleAction; label: string; icon: typeof Check; allowed
 export function SubscriptionDetailPage() {
   const { subscriptionId = '' } = useParams()
   const [item, setItem] = useState<Subscription | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [actionBusy, setActionBusy] = useState<LifecycleAction | null>(null); const [confirmClose, setConfirmClose] = useState(false)
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItem(await commerceApi.getSubscription(subscriptionId)) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Subscription could not be loaded.') } finally { setLoading(false) } }, [subscriptionId])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItem(await commerceApi.getSubscription(subscriptionId)) } catch (cause) { setItem(null); setError(cause instanceof Error ? cause.message : 'Subscription could not be loaded.') } finally { setLoading(false) } }, [subscriptionId])
   useEffect(() => { void load() }, [load])
 
   async function performAction(action: LifecycleAction) {

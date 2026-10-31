@@ -44,7 +44,7 @@ export function QuotationTemplatesPage() {
   const [deleting, setDeleting] = useState<QuoteTemplate | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setTemplates(await commerceApi.listTemplates()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Templates could not be loaded.') } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setTemplates(await commerceApi.listTemplates()) } catch (cause) { setTemplates([]); setError(cause instanceof Error ? cause.message : 'Templates could not be loaded.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
   function create() { setEditing(null); setDraft(emptyDraft()); setErrors({}); setFormError(''); setError(''); setEditorOpen(true) }
   function edit(template: QuoteTemplate) { const { id: _id, updatedAt: _updated, ...input } = template; setEditing(template); setDraft(input); setErrors({}); setFormError(''); setError(''); setEditorOpen(true) }

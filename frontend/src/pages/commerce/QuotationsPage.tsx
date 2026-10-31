@@ -18,14 +18,14 @@ export function QuotationsPage() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | QuotationStatus>('all')
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await commerceApi.listQuotations()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Quotations could not be loaded.') } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await commerceApi.listQuotations()) } catch (cause) { setItems([]); setError(cause instanceof Error ? cause.message : 'Quotations could not be loaded.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
   const filtered = useMemo(() => items.filter((item) => `${item.number} ${item.customerName} ${item.customerEmail}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'all' || item.status === filter)), [items, query, filter])
   const columns: DataTableColumn<Quotation>[] = [
-    { key: 'number', header: 'Quotation', render: (item) => <Link to={`/quotations/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
-    { key: 'customer', header: 'Customer', render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
-    { key: 'valid', header: 'Valid until', render: (item) => formatDate(item.validUntil) },
-    { key: 'amount', header: 'Amount', className: 'font-semibold', render: (item) => formatINR.format(item.amount) },
+    { key: 'number', header: 'Quotation', sortValue: (item) => item.number, render: (item) => <Link to={`/quotations/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
+    { key: 'customer', header: 'Customer', sortValue: (item) => item.customerName, render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
+    { key: 'valid', header: 'Valid until', sortValue: (item) => item.validUntil, render: (item) => formatDate(item.validUntil) },
+    { key: 'amount', header: 'Amount', sortValue: (item) => item.amount, className: 'font-semibold', render: (item) => formatINR.format(item.amount) },
     { key: 'status', header: 'Status', render: (item) => <StatusBadge status={item.status} /> },
     { key: 'open', header: '', className: 'text-right', render: (item) => <Link aria-label={`View quotation ${item.number}`} to={`/quotations/${encodeURIComponent(item.id)}`} className="inline-grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><ArrowUpRight size={16} /></Link> },
   ]

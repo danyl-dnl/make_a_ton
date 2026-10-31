@@ -14,15 +14,15 @@ import type { Subscription, SubscriptionStatus } from '../../lib/commerce-types'
 
 export function SubscriptionsPage() {
   const [items, setItems] = useState<Subscription[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [query, setQuery] = useState(''); const [filter, setFilter] = useState<'all' | SubscriptionStatus>('all')
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await commerceApi.listSubscriptions()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Subscriptions could not be loaded.') } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await commerceApi.listSubscriptions()) } catch (cause) { setItems([]); setError(cause instanceof Error ? cause.message : 'Subscriptions could not be loaded.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
   const filtered = useMemo(() => items.filter((item) => `${item.number} ${item.customerName} ${item.customerEmail} ${item.planName}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'all' || item.status === filter)), [items, query, filter])
   const columns: DataTableColumn<Subscription>[] = [
-    { key: 'number', header: 'Subscription', render: (item) => <Link to={`/subscriptions/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
-    { key: 'customer', header: 'Customer', render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
-    { key: 'plan', header: 'Plan', render: (item) => item.planName },
-    { key: 'expiry', header: 'Expiry date', render: (item) => formatDate(item.expiryDate) },
-    { key: 'amount', header: 'Amount', className: 'font-semibold', render: (item) => formatINR.format(item.amount) },
+    { key: 'number', header: 'Subscription', sortValue: (item) => item.number, render: (item) => <Link to={`/subscriptions/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
+    { key: 'customer', header: 'Customer', sortValue: (item) => item.customerName, render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
+    { key: 'plan', header: 'Plan', sortValue: (item) => item.planName, render: (item) => item.planName },
+    { key: 'expiry', header: 'Expiry date', sortValue: (item) => item.expiryDate, render: (item) => formatDate(item.expiryDate) },
+    { key: 'amount', header: 'Amount', sortValue: (item) => item.amount, className: 'font-semibold', render: (item) => formatINR.format(item.amount) },
     { key: 'status', header: 'Status', render: (item) => <StatusBadge status={item.status} /> },
     { key: 'open', header: '', className: 'text-right', render: (item) => <Link aria-label={`View subscription ${item.number}`} to={`/subscriptions/${encodeURIComponent(item.id)}`} className="inline-grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><ArrowUpRight size={16} /></Link> },
   ]

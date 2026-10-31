@@ -14,14 +14,14 @@ import { formatDate, formatMoney } from '../../lib/billing-format'
 
 export function InvoicesPage() {
   const [items, setItems] = useState<Invoice[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [query, setQuery] = useState(''); const [filter, setFilter] = useState<'all' | InvoiceStatus>('all')
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await billingApi.listInvoices()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Invoices could not be loaded.') } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await billingApi.listInvoices()) } catch (cause) { setItems([]); setError(cause instanceof Error ? cause.message : 'Invoices could not be loaded.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
   const filtered = useMemo(() => items.filter((item) => `${item.number} ${item.customerName} ${item.customerEmail}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'all' || item.status === filter)), [items, query, filter])
   const columns: DataTableColumn<Invoice>[] = [
-    { key: 'number', header: 'Invoice', render: (item) => <Link to={`/invoices/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
-    { key: 'customer', header: 'Customer', render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
-    { key: 'due', header: 'Due date', render: (item) => formatDate(item.dueDate) },
-    { key: 'total', header: 'Total', className: 'font-semibold tabular-nums', render: (item) => formatMoney(item.total, item.currency) },
+    { key: 'number', header: 'Invoice', sortValue: (item) => item.number, render: (item) => <Link to={`/invoices/${encodeURIComponent(item.id)}`} className="font-semibold text-blue-700 hover:text-blue-800">{item.number}</Link> },
+    { key: 'customer', header: 'Customer', sortValue: (item) => item.customerName, render: (item) => <div><p className="font-medium text-slate-800">{item.customerName}</p><p className="mt-0.5 text-xs text-slate-500">{item.customerEmail}</p></div> },
+    { key: 'due', header: 'Due date', sortValue: (item) => item.dueDate, render: (item) => formatDate(item.dueDate) },
+    { key: 'total', header: 'Total', sortValue: (item) => item.total, className: 'font-semibold tabular-nums', render: (item) => formatMoney(item.total, item.currency) },
     { key: 'status', header: 'Status', render: (item) => <InvoiceStatusBadge status={item.status} /> },
     { key: 'open', header: '', className: 'text-right', render: (item) => <Link aria-label={`View invoice ${item.number}`} to={`/invoices/${encodeURIComponent(item.id)}`} className="inline-grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><ArrowUpRight size={16} /></Link> },
   ]

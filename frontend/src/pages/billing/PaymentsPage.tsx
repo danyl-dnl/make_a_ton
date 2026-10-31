@@ -63,11 +63,11 @@ export function PaymentsPage() {
   }
 
   const columns: DataTableColumn<Payment>[] = [
-    { key: 'date', header: 'Date', render: (row) => formatDate(row.date) },
-    { key: 'invoice', header: 'Invoice', render: (row) => <Link to={`/invoices/${encodeURIComponent(row.invoiceId)}`} className="font-semibold text-blue-700 hover:text-blue-800">{row.invoiceNumber}</Link> },
-    { key: 'customer', header: 'Customer', render: (row) => row.customerName },
+    { key: 'date', header: 'Date', sortValue: (row) => row.date, render: (row) => formatDate(row.date) },
+    { key: 'invoice', header: 'Invoice', sortValue: (row) => row.invoiceNumber, render: (row) => <Link to={`/invoices/${encodeURIComponent(row.invoiceId)}`} className="font-semibold text-blue-700 hover:text-blue-800">{row.invoiceNumber}</Link> },
+    { key: 'customer', header: 'Customer', sortValue: (row) => row.customerName, render: (row) => row.customerName },
     { key: 'method', header: 'Method', render: (row) => methodLabels[row.method] },
-    { key: 'amount', header: 'Payment amount', className: 'text-right font-semibold tabular-nums', headerClassName: 'text-right', render: (row) => formatMoney(row.amount, row.currency) },
+    { key: 'amount', header: 'Payment amount', sortValue: (row) => row.amount, className: 'text-right font-semibold tabular-nums', headerClassName: 'text-right', render: (row) => formatMoney(row.amount, row.currency) },
     { key: 'status', header: 'Payment status', render: (row) => <PaymentStatusBadge status={row.status} /> },
     { key: 'invoiceStatus', header: 'Invoice balance', render: (row) => <InvoicePaymentBadge status={row.invoicePaymentStatus} /> },
   ]

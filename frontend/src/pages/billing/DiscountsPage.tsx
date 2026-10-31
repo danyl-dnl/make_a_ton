@@ -31,7 +31,7 @@ export function DiscountsPage() {
   const [items, setItems] = useState<Discount[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [query, setQuery] = useState('')
   const [editorOpen, setEditorOpen] = useState(false); const [editing, setEditing] = useState<Discount | null>(null); const [draft, setDraft] = useState<DiscountInput>(blankDiscount()); const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}); const [formError, setFormError] = useState(''); const [saving, setSaving] = useState(false)
   const [targets, setTargets] = useState<DiscountTarget[]>([]); const [targetsLoading, setTargetsLoading] = useState(false); const [targetsError, setTargetsError] = useState('')
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await billingApi.listDiscounts()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Discounts could not be loaded.') } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); setError(''); try { setItems(await billingApi.listDiscounts()) } catch (cause) { setItems([]); setError(cause instanceof Error ? cause.message : 'Discounts could not be loaded.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
   const filtered = useMemo(() => items.filter((item) => `${item.name} ${item.code} ${item.description}`.toLowerCase().includes(query.trim().toLowerCase())), [items, query])
 
@@ -53,8 +53,8 @@ export function DiscountsPage() {
   }
 
   const columns: DataTableColumn<Discount>[] = [
-    { key: 'discount', header: 'Discount', render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 font-mono text-xs text-slate-500">{item.code}</p></div> },
-    { key: 'value', header: 'Value', render: (item) => <span className="font-medium text-slate-800">{item.type === 'percentage' ? `${item.value}%` : formatINR.format(item.value)}</span> },
+    { key: 'discount', header: 'Discount', sortValue: (item) => item.name, render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 font-mono text-xs text-slate-500">{item.code}</p></div> },
+    { key: 'value', header: 'Value', sortValue: (item) => item.value, render: (item) => <span className="font-medium text-slate-800">{item.type === 'percentage' ? `${item.value}%` : formatINR.format(item.value)}</span> },
     { key: 'scope', header: 'Applies to', render: (item) => item.applicableTo.length ? <div className="flex max-w-xs flex-wrap gap-1">{item.applicableTo.slice(0, 3).map((target) => <span key={`${target.type}-${target.id}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{target.name}</span>)}{item.applicableTo.length > 3 ? <span className="text-xs text-slate-500">+{item.applicableTo.length - 3} more</span> : null}</div> : <span className="text-xs text-slate-500">All eligible items</span> },
     { key: 'validity', header: 'Validity', render: (item) => <span className="text-xs text-slate-600">{formatDate(item.startsAt)} – {formatDate(item.endsAt)}</span> },
     { key: 'usage', header: 'Usage', render: (item) => <span className="tabular-nums text-slate-700">{item.usageCount}{item.usageLimit === null ? ' used · no limit' : ` / ${item.usageLimit}`}</span> },

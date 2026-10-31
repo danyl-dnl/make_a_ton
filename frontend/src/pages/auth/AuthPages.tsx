@@ -71,7 +71,7 @@ export function RegisterPage() {
         <PasswordField value={password} onChange={setPassword} error={errors.password} />
         <ul className="grid gap-x-3 gap-y-1.5 rounded-xl bg-slate-50 p-3 sm:grid-cols-2">{passwordRules.map((rule) => <li key={rule.id} className={`flex items-center gap-2 text-[11px] ${rule.test(password) ? 'text-emerald-700' : 'text-slate-500'}`}><span className={`size-1.5 rounded-full ${rule.test(password) ? 'bg-emerald-500' : 'bg-slate-300'}`} />{rule.label}</li>)}</ul>
         <PasswordField label="Confirm password" value={confirm} onChange={setConfirm} error={errors.confirm} autoComplete="new-password" />
-        <p className="text-xs leading-5 text-slate-500">By creating an account, you agree to our <a href="#terms" className="font-medium text-slate-700 underline underline-offset-2">Terms</a> and <a href="#privacy" className="font-medium text-slate-700 underline underline-offset-2">Privacy Policy</a>.</p>
+        <p className="text-xs leading-5 text-slate-500">By creating an account, you agree to the Brightloop Terms of Service and Privacy Policy.</p>
         <Button type="submit" disabled={pending} className="h-11 w-full">{pending ? <><LoaderCircle size={16} className="animate-spin" />Creating account…</> : 'Create account'}</Button>
       </form>
       {apiError ? <ApiFeedback message={apiError} onDismiss={() => setApiError('')} /> : null}

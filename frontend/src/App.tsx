@@ -15,13 +15,13 @@ import { InvoiceDetailPage } from './pages/billing/InvoiceDetailPage'
 import { DiscountsPage } from './pages/billing/DiscountsPage'
 import { PaymentsPage } from './pages/billing/PaymentsPage'
 import { StatePanel } from './components/ui/StatePanel'
+import { CustomerPortalPage } from './pages/CustomerPortalPage'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 
 const pageDefinitions = [
-  { path: 'customers', title: 'Customers', description: 'Keep customer profiles and account details organized.', actionLabel: 'Add customer' },
-  { path: 'staff', title: 'Staff', description: 'Manage the people who have access to your workspace.', actionLabel: 'Invite staff' },
-  { path: 'customer-portal', title: 'Customer Portal', description: 'Prepare the self-service experience for your customers.' },
+  { path: 'customers', title: 'Customers', description: 'Keep customer profiles and account details organized.' },
+  { path: 'staff', title: 'Staff', description: 'Manage the people who have access to your workspace.' },
 ]
 
 export default function App() {
@@ -44,6 +44,7 @@ export default function App() {
         <Route path="invoices/:invoiceId" element={<InvoiceDetailPage />} />
         <Route path="discounts" element={<DiscountsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
+        <Route path="customer-portal" element={<CustomerPortalPage />} />
         {pageDefinitions.map((page) => <Route key={page.path} path={page.path} element={<PlaceholderPage {...page} />} />)}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

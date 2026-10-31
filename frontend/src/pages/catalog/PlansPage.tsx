@@ -47,7 +47,7 @@ export function PlansPage() {
   const load = useCallback(async () => {
     setLoading(true); setPageError('')
     try { const result = await catalogService.listPlans(); setPlans(result.items) }
-    catch (error) { setPageError(error instanceof Error ? error.message : 'Plans could not be loaded. Please try again.') }
+    catch (error) { setPlans([]); setPageError(error instanceof Error ? error.message : 'Plans could not be loaded. Please try again.') }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
@@ -77,9 +77,9 @@ export function PlansPage() {
   }
 
   const columns: DataTableColumn<Plan>[] = [
-    { key: 'name', header: 'Plan', render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 max-w-xs truncate text-xs text-slate-500">{item.description || 'No description'}</p></div> },
-    { key: 'price', header: 'Price', render: (item) => <span className="font-semibold text-slate-800">{formatINR.format(item.price)}<span className="ml-1 font-normal text-slate-500">/ {intervalLabels[item.interval].toLowerCase()}</span></span> },
-    { key: 'minimum', header: 'Minimum qty.', render: (item) => item.minimumQuantity },
+    { key: 'name', header: 'Plan', sortValue: (item) => item.name, render: (item) => <div><p className="font-semibold text-slate-900">{item.name}</p><p className="mt-0.5 max-w-xs truncate text-xs text-slate-500">{item.description || 'No description'}</p></div> },
+    { key: 'price', header: 'Price', sortValue: (item) => item.price, render: (item) => <span className="font-semibold text-slate-800">{formatINR.format(item.price)}<span className="ml-1 font-normal text-slate-500">/ {intervalLabels[item.interval].toLowerCase()}</span></span> },
+    { key: 'minimum', header: 'Minimum qty.', sortValue: (item) => item.minimumQuantity, render: (item) => item.minimumQuantity },
     { key: 'availability', header: 'Availability', render: (item) => <span className="text-xs text-slate-600">{item.availableFrom || item.availableUntil ? `${item.availableFrom || 'Any date'} – ${item.availableUntil || 'No end'}` : 'Always available'}</span> },
     { key: 'renewal', header: 'Renewal', render: (item) => <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.renewAutomatically ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{item.renewAutomatically ? 'Auto-renew' : 'Manual'}</span> },
     { key: 'actions', header: '', headerClassName: 'w-24', className: 'text-right', render: (item) => <div className="flex justify-end gap-1"><Button variant="ghost" size="icon" className="size-8" aria-label={`Edit ${item.name}`} onClick={() => openEdit(item)}><Pencil size={15} /></Button><Button variant="ghost" size="icon" className="size-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700" aria-label={`Delete ${item.name}`} onClick={() => setDeleting(item)}><Trash2 size={15} /></Button></div> },
