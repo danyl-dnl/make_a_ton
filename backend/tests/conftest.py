@@ -2,6 +2,7 @@
 
 import os
 import sys
+import uuid
 from collections.abc import AsyncGenerator
 import pytest
 from fastapi.testclient import TestClient
@@ -14,8 +15,10 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from app.core.config import settings
-from app.db.session import get_db
+from app.core.security import create_access_token, hash_password
+from app.db.session import get_db, sync_session_factory
 from app.main import app
+from app.models.user import User
 
 # Create test async engine with NullPool to prevent event-loop-closed errors across async tests
 test_async_engine = create_async_engine(
@@ -62,3 +65,44 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
         finally:
             await session.rollback()
+
+
+def _create_user_token(role: str) -> str:
+    """Synchronously create an isolated test user and return a signed JWT access token."""
+    user_id = uuid.uuid4()
+    email = f"test_{role}_{user_id.hex[:8]}@brightloop-test.io"
+    with sync_session_factory() as session:
+        user = User(
+            id=user_id,
+            email=email,
+            hashed_password=hash_password("TestAuthSecure123!"),
+            full_name=f"Test {role.capitalize()} User",
+            role=role,
+            is_active=True,
+        )
+        session.add(user)
+        session.commit()
+
+    return create_access_token({
+        "sub": str(user_id),
+        "email": email,
+        "role": role,
+    })
+
+
+@pytest.fixture
+def admin_token() -> str:
+    """Provide a valid JWT bearer token with 'admin' role."""
+    return _create_user_token("admin")
+
+
+@pytest.fixture
+def staff_token() -> str:
+    """Provide a valid JWT bearer token with 'staff' role."""
+    return _create_user_token("staff")
+
+
+@pytest.fixture
+def customer_token() -> str:
+    """Provide a valid JWT bearer token with 'customer' role."""
+    return _create_user_token("customer")

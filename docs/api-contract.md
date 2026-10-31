@@ -249,30 +249,119 @@ Retrieves authenticated user profile based on validated JWT bearer token claims.
 
 ---
 
-### 3.2. Product & Plan Catalog (`/api/v1/products`)
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/api/v1/products` | Create a new catalog product | `admin` |
-| `GET` | `/api/v1/products` | List active products and plan tiers | Public / Authenticated |
-| `POST` | `/api/v1/products/{product_id}/plans` | Create a pricing plan under a product | `admin` |
+### 3.2. Product & Variant Catalog (`/api/products`, `/api/v1/products`)
 
-#### Payload: `POST /api/v1/products/{product_id}/plans`
+#### Endpoints Summary
+| Method | Endpoint | Description | Access / Roles |
+|---|---|---|---|
+| `POST` | `/api/products` | Create a new catalog product | `admin`, `staff` |
+| `GET` | `/api/products` | List products with pagination and filters (`is_active`, `search`) | Public / Authenticated |
+| `GET` | `/api/products/{id}` | Retrieve product details with its variants | Public / Authenticated |
+| `PATCH` | `/api/products/{id}` | Update product details (name, code, description) | `admin`, `staff` |
+| `POST` | `/api/products/{id}/activate` | Enable product in catalog | `admin`, `staff` |
+| `POST` | `/api/products/{id}/deactivate` | Disable product in catalog | `admin`, `staff` |
+| `POST` | `/api/products/{id}/variants` | Create a product variant with SKU and Decimal price | `admin`, `staff` |
+| `GET` | `/api/products/{id}/variants` | List all variants under a product | Public / Authenticated |
+| `PATCH` | `/api/products/{id}/variants/{variant_id}` | Update variant name, SKU, price, or status | `admin`, `staff` |
+
+#### Payload: `POST /api/products`
 ```json
 {
-  "name": "Enterprise Annual",
-  "code": "ENT-ANNUAL",
-  "billing_interval": "annual",
-  "billing_interval_count": 1,
-  "price_cents": 120000,
-  "currency": "USD",
-  "trial_period_days": 14,
-  "pricing_model": "flat_fee"
+  "name": "Cloud Storage Suite",
+  "code": "CLOUD-STORAGE",
+  "description": "Secure enterprise cloud object storage",
+  "is_active": true
+}
+```
+
+#### Response: `POST /api/products` (`201 Created`)
+```json
+{
+  "id": "7b048d28-09cb-4c22-b5e1-0c58e11a3db6",
+  "organization_id": null,
+  "name": "Cloud Storage Suite",
+  "code": "CLOUD-STORAGE",
+  "description": "Secure enterprise cloud object storage",
+  "is_active": true,
+  "created_at": "2026-10-31T13:50:00Z",
+  "updated_at": "2026-10-31T13:50:00Z"
+}
+```
+
+#### Payload: `POST /api/products/{id}/variants`
+```json
+{
+  "name": "1TB High-Performance Tier",
+  "sku": "STORAGE-1TB-HP",
+  "price": "49.99",
+  "is_active": true
 }
 ```
 
 ---
 
-### 3.3. Subscription Lifecycle (`/api/v1/subscriptions`)
+### 3.3. Pricing Plan Management (`/api/plans`, `/api/v1/plans`)
+
+#### Endpoints Summary
+| Method | Endpoint | Description | Access / Roles |
+|---|---|---|---|
+| `POST` | `/api/plans` | Create a new pricing plan | `admin`, `staff` |
+| `GET` | `/api/plans` | List available plans with pagination, interval & active filters | Public / Authenticated |
+| `GET` | `/api/plans/{id}` | Retrieve plan by ID including bundled products/variants | Public / Authenticated |
+| `PATCH` | `/api/plans/{id}` | Update plan details (price, interval, name, code) | `admin`, `staff` |
+| `POST` | `/api/plans/{id}/activate` | Enable pricing plan | `admin`, `staff` |
+| `POST` | `/api/plans/{id}/deactivate` | Disable pricing plan | `admin`, `staff` |
+| `POST` | `/api/plans/{id}/products` | Associate product or variant with plan bundle | `admin`, `staff` |
+| `GET` | `/api/plans/{id}/products` | List all bundled products/variants in plan | Public / Authenticated |
+| `PATCH` | `/api/plans/{id}/products/{assoc_id}` | Update association quantity or variant | `admin`, `staff` |
+| `DELETE` | `/api/plans/{id}/products/{assoc_id}` | Detach product/variant from plan bundle | `admin`, `staff` |
+
+#### Payload: `POST /api/plans`
+```json
+{
+  "name": "Enterprise Annual Subscription",
+  "code": "ENT-ANNUAL",
+  "description": "Enterprise tier with annual recurring billing",
+  "billing_interval": "annual",
+  "billing_interval_count": 1,
+  "price": "1200.00",
+  "currency": "USD",
+  "trial_period_days": 14,
+  "is_active": true
+}
+```
+
+#### Response: `POST /api/plans` (`201 Created`)
+```json
+{
+  "id": "e441c884-6fb0-4543-982d-e4aa3bf872e1",
+  "organization_id": null,
+  "name": "Enterprise Annual Subscription",
+  "code": "ENT-ANNUAL",
+  "description": "Enterprise tier with annual recurring billing",
+  "billing_interval": "annual",
+  "billing_interval_count": 1,
+  "price": "1200.00",
+  "currency": "USD",
+  "trial_period_days": 14,
+  "is_active": true,
+  "created_at": "2026-10-31T13:51:00Z",
+  "updated_at": "2026-10-31T13:51:00Z"
+}
+```
+
+#### Payload: `POST /api/plans/{id}/products`
+```json
+{
+  "product_id": "7b048d28-09cb-4c22-b5e1-0c58e11a3db6",
+  "product_variant_id": "8f8b89d4-1a35-4122-b5f7-4c483a216db8",
+  "quantity": 2
+}
+```
+
+---
+
+### 3.4. Subscription Lifecycle (`/api/v1/subscriptions` — Future Stage)
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/v1/subscriptions` | Initialize and activate a new subscription |
